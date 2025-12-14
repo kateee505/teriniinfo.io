@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="lv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tēriņu Pārskats</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- WELCOME -->
+  <section class="card welcome">
+    <h1>Sveiki!</h1>
+    <p>Ko tu esi iztērējis?</p>
+    <button class="btn btn-dark" onclick="goToChart()">Uz tēriņu pārskatu</button>
+  </section>
+
+  <!-- CHART -->
+  <section class="card stats" id="chart">
+    <h2>Tēriņu sadalījums</h2>
+    <div class="chart" id="pie"></div>
+    <div class="legend" id="legend"></div>
+    <button class="btn btn-yellow" onclick="openModal('expenseModal')">+ Pievienot tēriņus</button>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="card welcome">
+    <h2>Iestatījumi</h2>
+    <button class="btn btn-dark" onclick="openModal('settingsModal')">Atvērt iestatījumus</button>
+  </section>
+
+</div>
+
+<!-- ADD EXPENSE -->
+<div class="modal" id="expenseModal">
+  <div class="modal-box">
+    <h3>Pievienot tēriņus</h3>
+    <input type="number" id="amount" placeholder="Summa €">
+    <select id="category"></select>
+    <button class="btn btn-dark" onclick="addExpense()">Saglabāt</button>
+    <button class="btn btn-light" onclick="closeModal()">Atpakaļ</button>
+  </div>
+</div>
+
+<!-- SETTINGS MAIN -->
+<div class="modal" id="settingsModal">
+  <div class="modal-box">
+    <h3>Iestatījumi</h3>
+    <button class="btn btn-dark" onclick="openModal('themeModal')">Tēma</button>
+    <button class="btn btn-dark" onclick="openModal('listModal')">Saraksta iestatījumi</button>
+    <button class="btn btn-light" onclick="closeModal()">Atpakaļ</button>
+  </div>
+</div>
+
+<!-- THEME -->
+<div class="modal" id="themeModal">
+  <div class="modal-box">
+    <h3>Tēmas izvēle</h3>
+    <button class="btn btn-dark" onclick="setTheme('dark')">Tumšā</button>
+    <button class="btn btn-light" onclick="setTheme('light')">Gaišā</button>
+    <button class="btn btn-light" onclick="closeModal()">Atpakaļ</button>
+  </div>
+</div>
+
+<!-- LIST SETTINGS -->
+<div class="modal" id="listModal">
+  <div class="modal-box">
+    <h3>Saraksta iestatījumi</h3>
+    <label>
+      <input type="checkbox" id="toggleAmounts" onchange="toggleAmounts()">
+      Rādīt summas
+    </label>
+    <button class="btn btn-light" onclick="closeModal()">Atpakaļ</button>
+  </div>
+</div>
+
+<script>
+const categories = {
+  Pirkumi: { v:0, c:"#60a5fa", i:"🛒" },
+  Online: { v:0, c:"#38bdf8", i:"💻" },
+  Ēdiens: { v:0, c:"#4ade80", i:"🍽" },
+  Abonementi:{ v:0, c:"#f87171", i:"📺" },
+  Komunālie:{ v:0, c:"#facc15", i:"🏠" },
+  Pārskaitījumi:{ v:0, c:"#c084fc", i:"💸" }
+};
+
+let showAmounts = JSON.parse(localStorage.getItem("showAmounts")) ?? true;
+
+function save() {
+  localStorage.setItem("data", JSON.stringify(categories));
+  localStorage.setItem("theme", document.body.dataset.theme);
+  localStorage.setItem("showAmounts", showAmounts);
+}
+
+function load() {
+  const d = JSON.parse(localStorage.getItem("data"));
+  if (d) Object.keys(categories).forEach(k => categories[k].v = d[k].v);
+  setTheme(localStorage.getItem("theme") || "dark");
+  document.getElementById("toggleAmounts").checked = showAmounts;
+  update();
+}
+
+function openModal(id) {
+  document.querySelectorAll(".modal").forEach(m=>m.style.display="none");
+  document.getElementById(id).style.display="flex";
+}
+
+function closeModal() {
+  document.querySelectorAll(".modal").forEach(m=>m.style.display="none");
+}
+
+function addExpense() {
+  const a = +amount.value;
+  const c = category.value;
+  if(!a) return;
+  categories[c].v += a;
+  save(); update(); closeModal();
+}
+
+function update() {
+  const total = Object.values(categories).reduce((s,x)=>s+x.v,0);
+  if(!total) return;
+  let cur=0, g=[], l="";
+  Object.entries(categories).forEach(([n,o])=>{
+    if(!o.v) return;
+    let p=o.v/total*100;
+    g.push(`${o.c} ${cur}% ${cur+p}%`);
+    cur+=p;
+    l+=`<div class="legend-item">
+      <span class="rect" style="background:${o.c}"></span>
+      ${o.i} ${n} — ${p.toFixed(1)}%
+      ${showAmounts?` (${o.v.toFixed(2)} €)`:``}
+    </div>`;
+  });
+  pie.style.background=`conic-gradient(${g})`;
+  legend.innerHTML=l;
+}
+
+function setTheme(t){document.body.dataset.theme=t;save();}
+function toggleAmounts(){showAmounts=!showAmounts;save();update();}
+function goToChart(){chart.scrollIntoView({behavior:"smooth"});}
+
+const category=document.getElementById("category");
+Object.keys(categories).forEach(k=>{
+  category.innerHTML+=`<option value="${k}">${categories[k].i} ${k}</option>`;
+});
+
+load();
+</script>
+
+</body>
+</html>
